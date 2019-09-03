@@ -1,4 +1,5 @@
 [![PyPI version](https://badge.fury.io/py/tensile_test.svg)](https://badge.fury.io/py/tensile_test)
+[![Build Status](https://travis-ci.org/LightForm-group/tensile-test.svg?branch=master)](https://travis-ci.org/LightForm-group/tensile-test)
 
 # tensile-test
 
