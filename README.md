@@ -8,3 +8,7 @@ This is a Python package to assist with analysing the results of tensile tests. 
 ## Installation
 
 `pip install tensile-test`
+
+## Demonstration
+
+Check out [this repository](https://github.com/LightForm-group/surfalex-CP-parameters) for an interactive demonstration.
