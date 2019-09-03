@@ -1,0 +1,6 @@
+pylint
+ipykernel
+rope
+autopep8
+twine
+wheel
