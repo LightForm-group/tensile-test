@@ -1,10 +1,11 @@
 """`tensile_test.tensile_test.py`"""
 
 from pathlib import Path
+import json
 
 import numpy as np
 
-from tensile_test.utils import find_nearest_index, read_non_uniform_csv
+from tensile_test.utils import find_nearest_index, read_non_uniform_csv, nan_array_to_list
 
 
 def get_true_stress_strain(eng_stress, eng_strain):
@@ -49,11 +50,11 @@ class TensileTest(object):
             if len(eng_stress) != len(eng_strain):
                 raise ValueError('Stress and strain do not have the same length.')
 
-        self._eng_stress = eng_stress
-        self._eng_strain = eng_strain
+        self._eng_stress = self._prepare_array(eng_stress)
+        self._eng_strain = self._prepare_array(eng_strain)
 
-        self._true_stress = true_stress
-        self._true_strain = true_strain
+        self._true_stress = self._prepare_array(true_stress)
+        self._true_strain = self._prepare_array(true_strain)
 
         self.youngs_modulus = youngs_modulus or TensileTest.DEFAULT_YOUNGS_MOD
         self.taylor_factor = taylor_factor or TensileTest.DEFAULT_TAYLOR_FACTOR
@@ -65,6 +66,55 @@ class TensileTest(object):
 
         self._shear_stress = None
         self._shear_strain = None
+
+    def _prepare_array(self, arr):
+        'Cast a list (with potentially `None` values) into a float array.'
+        if arr is not None:
+            arr = np.array(arr, dtype=np.float)
+        return arr
+
+    def to_dict(self):
+        'Represent as a JSON-compatible dict.'
+
+        out = {}
+        # Only save one of eng/true stress/strain:
+        if self._true_stress is not None:
+            out.update({
+                'true_stress': nan_array_to_list(self._true_stress),
+                'true_strain': nan_array_to_list(self._true_strain),
+            })
+        elif self._eng_stress is not None:
+            out.update({
+                'eng_stress': nan_array_to_list(self._eng_stress),
+                'eng_strain': nan_array_to_list(self._eng_strain),
+            })
+
+        out.update({
+            'youngs_modulus': self.youngs_modulus,
+            'taylor_factor': self.taylor_factor,
+            'plastic_range': self.plastic_range,
+        })
+
+        return out
+
+    def to_json_file(self, json_path):
+        'Save the TensileTest object to a JSON file'
+
+        json_path = Path(json_path)
+        dct = self.to_dict()
+        with json_path.open('w') as handle:
+            json.dump(dct, handle, sort_keys=True, indent=4)
+
+        return json_path
+
+    @classmethod
+    def from_json_file(cls, json_path):
+        'Load a TensileTest from a JSON file.'
+
+        with Path(json_path).open() as handle:
+            contents = json.load(handle)
+
+        return cls(**contents)
 
     def __repr__(self):
         out = '{}()'.format(self.__class__.__name__)

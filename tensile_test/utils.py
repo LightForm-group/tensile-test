@@ -44,3 +44,7 @@ def read_non_uniform_csv(path, delimiter=',', skip_rows=0, header_row=1):
         return headers, arrs
     else:
         return arrs
+
+
+def nan_array_to_list(arr):
+    return np.where(np.isnan(arr), None, arr).tolist()
