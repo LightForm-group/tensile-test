@@ -232,6 +232,13 @@ class LMFitterOptimisation(object):
         return jacobian
 
     @property
+    def fitting_params(self):
+        out = {}
+        for param in self.lm_fitter.fitting_params:
+            out.update({param.name: param.values[self.index]})
+        return out
+
+    @property
     def jacobian(self):
         return self._jacobian
 
