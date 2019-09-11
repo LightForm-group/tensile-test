@@ -285,7 +285,8 @@ class LMFitter(object):
     FIG_PAD = [0.01, 5]
 
     def __init__(self, exp_tensile_test, material_params, fitting_params, inputs_writer,
-                 base_sim_dir=None, sim_dir=None, initial_damping=None, optimisations=None):
+                 base_sim_dir=None, sim_dir=None, initial_damping=None, optimisations=None,
+                 ignore_missing_dirs=False):
         """Use a Levenberg-Marquardt optimisation process to find crystal plasticity
         hardening parameters.
 
@@ -334,7 +335,8 @@ class LMFitter(object):
         self.inputs_writer = self._validate_inputs_writer(inputs_writer)
         self.initial_damping = initial_damping or [2, 1, 0.5]
 
-        base_sim_dir, sim_dir = self._validate_dirs(base_sim_dir, sim_dir)
+        if not ignore_missing_dirs:
+            base_sim_dir, sim_dir = self._validate_dirs(base_sim_dir, sim_dir)
         self._base_sim_dir = str(base_sim_dir)
         self._sim_dir = str(sim_dir)
 
@@ -376,7 +378,7 @@ class LMFitter(object):
         return json_path
 
     @classmethod
-    def from_json_file(cls, json_path):
+    def from_json_file(cls, json_path, ignore_missing_dirs=False):
         'Load an LMFitter from a JSON file.'
 
         with Path(json_path).open() as handle:
@@ -397,7 +399,7 @@ class LMFitter(object):
             })
             contents['optimisations'][idx] = LMFitterOptimisation(**i)
 
-        lm_fitter = cls(**contents)
+        lm_fitter = cls(**contents, ignore_missing_dirs=ignore_missing_dirs)
         for opt in lm_fitter.optimisations:
             opt._validate(lm_fitter)
 
