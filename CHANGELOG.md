@@ -1,5 +1,16 @@
 # Change Log
 
+## [0.1.2] - 2019.09.11
+
+### Added
+
+- Added property `fitting_params` to `LMFitterOptimisation` to show the values of the fitting parameters at a given iteration.
+
+### Changed
+
+- Sims are hidden by default in `LMFitter` visualisation.
+- Allow skipping directory validation with `ignore_missing_dirs` argument to `LMFitter.from_json_file`, which allows loading the JSON file on another computer.
+
 ## [0.1.1] - 2019.09.08
 
 ### Added
