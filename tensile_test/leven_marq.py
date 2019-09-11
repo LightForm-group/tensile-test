@@ -598,7 +598,8 @@ class LMFitter(object):
                 'x': opt.get_sim_strain(0),
                 'y': opt.get_sim_stress(0) / 1e6,
                 'mode': 'lines',
-                'name': 'Sim. {}'.format(idx)
+                'name': 'Sim. {}'.format(idx),
+                'visible': 'legendonly',
             } for idx, opt in enumerate(self.optimisations, 1)
         ])
 
