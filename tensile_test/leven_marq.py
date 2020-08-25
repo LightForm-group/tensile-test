@@ -530,6 +530,8 @@ class LMFitter(object):
                     val = val.replace('<<SIM_DIR>>', str(sim_dir))
                 if val == '<<PARAMETERS>>':
                     val = params
+                if arg in params:
+                    val = params[arg]
             elif isinstance(val, dict):
                 val = self._prepare_func_args(val, params, sim_dir)
 
