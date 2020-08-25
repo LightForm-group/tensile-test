@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.3] - 2020.08.25
+
+### Changed
+
+- Perform LM fit up to upper plastic range of experimental data only.
+
 ## [0.1.2] - 2019.09.11
 
 ### Added
