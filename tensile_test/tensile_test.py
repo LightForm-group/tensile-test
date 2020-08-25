@@ -4,6 +4,9 @@ from pathlib import Path
 import json
 
 import numpy as np
+from plotly import graph_objects as go
+from plotly.colors import DEFAULT_PLOTLY_COLORS
+from ipywidgets import widgets
 
 from tensile_test.utils import find_nearest_index, read_non_uniform_csv, nan_array_to_list
 
@@ -31,10 +34,19 @@ class TensileTest(object):
     DEFAULT_TAYLOR_FACTOR = 2.5
     DEFAULT_YOUNGS_MOD = 79  # GPa
     DEFAULT_PLASTIC_RANGE_START = 0.02
+    FIG_WIDTH = 380
+    FIG_HEIGHT = 280
+    FIG_MARG = {
+        't': 50,
+        'l': 60,
+        'r': 50,
+        'b': 80,
+    }
+    FIG_PAD = [0.01, 5]
 
     def __init__(self, eng_stress=None, eng_strain=None, true_stress=None,
                  true_strain=None, youngs_modulus=None, taylor_factor=None,
-                 plastic_range=None):
+                 plastic_range=None, meta=None):
 
         msg = ('Specify (`eng_stress` and `eng_strain`) or (`true_stress` and '
                '`true_strain`)')
@@ -67,6 +79,10 @@ class TensileTest(object):
         self._shear_stress = None
         self._shear_strain = None
 
+        self.meta = meta or {}
+        self._visual = None
+        self._widgets = self._generate_widgets()
+
     def _prepare_array(self, arr):
         'Cast a list (with potentially `None` values) into a float array.'
         if arr is not None:
@@ -93,6 +109,7 @@ class TensileTest(object):
             'youngs_modulus': self.youngs_modulus,
             'taylor_factor': self.taylor_factor,
             'plastic_range': self.plastic_range,
+            'meta': self.meta,
         })
 
         return out
@@ -326,3 +343,86 @@ class TensileTest(object):
         shear_stress = self.plastic_stress / taylor_factor
 
         return shear_stress, shear_strain
+
+    def _update_widgets_stress_strain_type(self, change):
+
+        ss_type = self._widgets['stress_strain_type']
+        fig = self._widgets['figure']
+
+        with fig.batch_update():
+            if ss_type.value == 'Engineering':
+                stress = self.eng_stress
+                strain = self.eng_strain
+            else:
+                stress = self.true_stress
+                strain = self.true_strain
+
+            fig.data[0].x = strain
+            fig.data[0].y = stress
+            fig.layout.xaxis.title.text = ss_type.value + ' strain, ε'
+            fig.layout.yaxis.title.text = ss_type.value + ' stress, σ / MPa'
+
+    def _generate_widgets(self):
+        data = [
+            {
+                'x': self.eng_strain,
+                'y': self.eng_stress,
+                'name': self.meta.get('name') or '',
+                'line': {
+                    'color': DEFAULT_PLOTLY_COLORS[0],
+                },
+            },
+        ]
+        layout = {
+            'title': 'Tensile test',
+            'width': TensileTest.FIG_WIDTH,
+            'height': TensileTest.FIG_HEIGHT,
+            'margin': TensileTest.FIG_MARG,
+            'xaxis': {
+                'title': 'Engineering strain, ε',
+                'range': [-TensileTest.FIG_PAD[0],
+                          TensileTest.FIG_PAD[0] + self.max_strain],
+            },
+            'yaxis': {
+                'title': 'Engineering stress, σ / MPa',
+                'range': [-TensileTest.FIG_PAD[1] * 1e6,
+                          TensileTest.FIG_PAD[1] * 1e6 + self.max_stress],
+            },
+        }
+        fig_wig = go.FigureWidget(data=data, layout=layout)
+        widget_ss_type = widgets.RadioButtons(
+            options=['Engineering', 'True'],
+            description='Stress/strain:',
+            value='Engineering',
+        )
+        widget_ss_type.observe(self._update_widgets_stress_strain_type, names='value')
+        widget_dict = {
+            'figure': fig_wig,
+            'stress_strain_type': widget_ss_type,
+        }
+        return widget_dict
+
+    def _generate_visual(self):
+
+        out = widgets.HBox(
+            children=[
+                self._widgets['figure'],
+                self._widgets['stress_strain_type']
+            ]
+        )
+        return out
+
+    @property
+    def visual(self):
+        if not self._visual:
+            self._visual = self._generate_visual()
+        return self._visual
+
+    def show(self, stress_strain_type='engineering'):
+        'Plot stress/strain data'
+        ss_type = {
+            'engineering': 'Engineering',
+            'true': 'True',
+        }
+        self._widgets['stress_strain_type'].value = ss_type[stress_strain_type]
+        return self.visual
