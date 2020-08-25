@@ -185,21 +185,39 @@ class LMFitterOptimisation(object):
 
     def _get_strain_idx(self):
         """Use the first simulated tensile test (unperturbed fitting parameters) to define
-        the strain increments used in the Jacobian approximation."""
+        the strain increments used in the Jacobian approximation.
+
+        Returns
+        -------
+        tuple of (exp_strain_idx, sim_strain_idx)
+            exp_strain_idx : ndarray of shape (N,)
+            sim_strain_idx : ndarray of shape (M, N)
+
+        """
 
         first_tt = self.sim_tensile_tests[0]
         exp_tt = self.lm_fitter.exp_tensile_test
 
+        # Only use strain increments up to plastic upper limit (pre-necking) of the
+        # experimental test (this assumes the simulated test goes beyond the plastic
+        # limit):
+        max_idx = find_nearest_index(first_tt.true_strain, exp_tt.plastic_range[1])
+
         exp_strain_idx = []
         sim_strain_idx = [[] for _ in range(len(self.sim_tensile_tests))]
-        for i_idx, strain_val in enumerate(first_tt.true_strain):
 
+        # Use all (up to max) strain increments in the first simulated response:
+        sim_strain_idx[0] = np.arange(len(first_tt.true_strain[:max_idx]))
+
+        for strain_val in first_tt.true_strain[:max_idx]:
+
+            # Use experimental increments closest to the first simulated response:
             exp_strain_idx.append(find_nearest_index(exp_tt.true_strain, strain_val))
-            sim_strain_idx[0] = np.arange(len(first_tt.true_strain))
 
+            # For each remaining sim, use increments closest to first simulated response:
             for j_idx, sim_tt in enumerate(self.sim_tensile_tests[1:], 1):
-                sim_strain_idx[j_idx].append(
-                    find_nearest_index(sim_tt.true_strain, strain_val))
+                sim_tt_idx = find_nearest_index(sim_tt.true_strain, strain_val)
+                sim_strain_idx[j_idx].append(sim_tt_idx)
 
         exp_strain_idx = np.array(exp_strain_idx)
         sim_strain_idx = np.array(sim_strain_idx)
