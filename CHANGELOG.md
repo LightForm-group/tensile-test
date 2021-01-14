@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.1.4] - 2021.xx.xx
+
+### Added
+
+- Add `TensileTest.show` method for visualising a `TensileTest`.
+
+## Changed
+
+- Add `check_import` boolean to `LMFitter.__init__`.
+
 ## [0.1.3] - 2020.08.25
 
 ### Changed

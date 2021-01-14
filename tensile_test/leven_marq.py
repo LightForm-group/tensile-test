@@ -304,7 +304,7 @@ class LMFitter(object):
 
     def __init__(self, exp_tensile_test, material_params, fitting_params, inputs_writer,
                  base_sim_dir=None, sim_dir=None, initial_damping=None, optimisations=None,
-                 ignore_missing_dirs=False):
+                 ignore_missing_dirs=False, check_import=True):
         """Use a Levenberg-Marquardt optimisation process to find crystal plasticity
         hardening parameters.
 
@@ -350,7 +350,7 @@ class LMFitter(object):
 
         self.base_material_params = material_params
         self.fitting_params = self._validate_fitting_params(fitting_params)
-        self.inputs_writer = self._validate_inputs_writer(inputs_writer)
+        self.inputs_writer = self._validate_inputs_writer(inputs_writer, check_import)
         self.initial_damping = initial_damping or [2, 1, 0.5]
 
         if not ignore_missing_dirs:
@@ -396,7 +396,7 @@ class LMFitter(object):
         return json_path
 
     @classmethod
-    def from_json_file(cls, json_path, ignore_missing_dirs=False):
+    def from_json_file(cls, json_path, ignore_missing_dirs=False, check_import=False):
         'Load an LMFitter from a JSON file.'
 
         with Path(json_path).open() as handle:
@@ -417,7 +417,11 @@ class LMFitter(object):
             })
             contents['optimisations'][idx] = LMFitterOptimisation(**i)
 
-        lm_fitter = cls(**contents, ignore_missing_dirs=ignore_missing_dirs)
+        lm_fitter = cls(
+            **contents,
+            ignore_missing_dirs=ignore_missing_dirs,
+            check_import=check_import
+        )
         for opt in lm_fitter.optimisations:
             opt._validate(lm_fitter)
 
@@ -499,7 +503,7 @@ class LMFitter(object):
             paths.append(i)
         return paths
 
-    def _validate_inputs_writer(self, inputs_writer):
+    def _validate_inputs_writer(self, inputs_writer, check_import=True):
 
         msg = ('`inputs_writer` must be a dict with keys: `function`, `dir_path_arg`'
                ' and `module` (optional).')
@@ -520,12 +524,16 @@ class LMFitter(object):
             inputs_writer['module'] = __name__
 
         # Check function is importable:
-        try:
-            _ = getattr(import_module(inputs_writer['module']), inputs_writer['function'])
-        except ModuleNotFoundError:
-            msg = 'Could not find the input file writer function "{}" in module "{}".'
-            raise ValueError(msg.format(
-                inputs_writer['function'], inputs_writer['module']))
+        if check_import:
+            try:
+                _ = getattr(
+                    import_module(inputs_writer['module']),
+                    inputs_writer['function']
+                )
+            except ModuleNotFoundError:
+                msg = 'Could not find the input file writer function "{}" in module "{}".'
+                raise ValueError(msg.format(
+                    inputs_writer['function'], inputs_writer['module']))
 
         return inputs_writer
 
@@ -646,7 +654,14 @@ class LMFitter(object):
 
         return fig
 
-    def show(self):
+    @property
+    def visual(self):
         if not self._visual:
             self._visual = self._generate_visual()
         return self._visual
+
+    def show(self, layout_args=None):
+        viz = self.visual
+        if layout_args:
+            viz.layout.update(**layout_args)
+        return viz
